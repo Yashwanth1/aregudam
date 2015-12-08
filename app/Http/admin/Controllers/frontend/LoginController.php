@@ -3,6 +3,7 @@
 use App\Http\admin\Controllers\Controller;
 use App\Models\State;
 use App\Models\Endusers;
+use App\Models\Contactus;
 // use App\User;
 use Socialize;
 use Illuminate\Http\Request;
@@ -198,19 +199,23 @@ class LoginController extends Controller {
 		if(CNF_RECAPTCHA =='true') $rules['captcha'] = 'required|captcha';
 		$validator = Validator::make(Input::all(), $rules);
 		if ($validator->passes()) {	
-// echo "mmm".$request->input('password');die;
 			$remember = (!is_null($request->get('remember')) ? 'true' : 'false' );
-			var_dump($this->auth->attempt(array('email'=>$request->input('email_id'), 'password'=> $request->input('password'))));die;
-			if ($this->auth->attempt(array('email_id'=>$request->input('email_id'), 'password'=> $request->input('password') ), $remember )) {
-				if($this->auth->check())
-				{
-					echo \Auth::user()->id;die;
-					$row = endusers::find(\Auth::user()->id); 
-	
-					if($row->status =='inactive')
+			// var_dump($this->auth->attempt(array('email'=>$request->input('email_id'), 'password'=> $request->input('password'))));die;
+			$email_id 	= $request->input('email_id');
+			$password 	= $request->input('password');
+			
+			$row 				= endusers::where('email_id','=',$email_id)->get(array('pk_user_id','first_name','email_id','password','status'));
+			$row['email_id'] 	= array_pluck($row->toArray(),'email_id');
+			$row['password'] 	= array_pluck($row->toArray(),'password');
+			
+			if (!empty($row['email_id']) && !empty($row['password']) && \Hash::check($password,$row['password'][0])) {
+				
+					$row['status'] 		= array_pluck($row->toArray(),'status');
+
+					if($row['status'][0] =='inactive')
 					{
 						// inactive 
-						\Auth::logout();
+						// \Auth::logout();
 						return Redirect::to('/login')->with('message', \SiteHelpers::alert('error','Your Account is not active'));
 	
 					} /*else if($row->active=='2')
@@ -219,27 +224,31 @@ class LoginController extends Controller {
 						\Auth::logout();
 						return Redirect::to('/login')->with('message', \SiteHelpers::alert('error','Your Account is BLocked'));
 					}*/ else {
+						$row['pk_user_id'] 	= array_pluck($row->toArray(),'pk_user_id');
+						$row['first_name'] 	= array_pluck($row->toArray(),'first_name');
+
 						// \DB::table('users')->where('id', '=',$row->id )->update(array('last_login' => date("Y-m-d H:i:s")));
-						\Session::put('uid', $row->pk_user_id);
+						\Session::put('user_id', $row['pk_user_id'][0]);
 						// \Session::put('gid', $row->group_id);
-						\Session::put('eid', $row->email_id);
+						\Session::put('email_id', $row['email_id'][0]);
 						// \Session::put('ll', $row->last_login);
-						\Session::put('fid', $row->first_name);	
-						if(!is_null($request->input('language')))
+						\Session::put('first_name', $row['first_name'][0]);	
+						
+						/*if(!is_null($request->input('language')))
 						{
 							\Session::put('lang', $request->input('language'));	
 						} else {
 							\Session::put('lang', 'en');	
-						}  
+						}  */
+
 							if(CNF_FRONT =='false') :
 							return Redirect::to('/login');						
 						else :
-							return Redirect::to('/login');
+							return Redirect::to('/login')
+									->with('message', \SiteHelpers::alert('success','Logged in successfully'));
 						endif;							
 											
 					}			
-					
-				}			
 				
 			} else {
 				return Redirect::to('/login')
@@ -351,7 +360,8 @@ class LoginController extends Controller {
 		$validator = Validator::make(Input::all(), $rules);
 		if ($validator->passes()) {	
 	
-			$user =  User::where('email','=',$request->input('credit_email'));
+			$user =  endusers::where('email_id','=',$request->input('credit_email'));
+			
 			if($user->count() >=1)
 			{
 				$user = $user->get();
@@ -366,17 +376,17 @@ class LoginController extends Controller {
 					mail($to, $subject, $message, $headers);				
 			
 				
-				$affectedRows = User::where('email', '=',$user->email)
-								->update(array('reminder' => $request->input('_token')));
+				/*$affectedRows = endusers::where('email_id', '=',$user->email_id)
+								->update(array('reminder' => $request->input('_token')));*/
 								
-				return Redirect::to('admin/user/login')->with('message', \SiteHelpers::alert('success','Please check your email'));	
+				return Redirect::to('/login')->with('message', \SiteHelpers::alert('success','Please check your email'));	
 				
 			} else {
-				return Redirect::to('admin/user/login')->with('message', \SiteHelpers::alert('error','Cant find email address'));
+				return Redirect::to('/login')->with('message', \SiteHelpers::alert('error','Cant find email address'));
 			}
 
 		}  else {
-			return Redirect::to('admin/user/login')->with('message', \SiteHelpers::alert('error','The following errors occurred')
+			return Redirect::to('/login')->with('message', \SiteHelpers::alert('error','The following errors occurred')
 			)->withErrors($validator)->withInput();
 		}	 
 	}	
@@ -487,4 +497,42 @@ class LoginController extends Controller {
 
 	}
 	
+	public function getContact(){
+		return view('frontend.contact')->render();
+	}
+
+	public function postContact(Request $request){
+		$rules = array(
+			'name'=>'required|min:2',
+			'email_id'=>'required|email',
+			'message'=>'required|min:5'
+			);
+		$validator = Validator::make($request->all(), $rules);
+		if ($validator->passes()) {
+			$contact 			= new contactus;
+			$contact->name 		= $request->input('name');
+			$contact->email_id 	= $request->input('email_id');
+			$contact->message 	= $request->input('message');
+			$contact->save();
+			return Redirect::to('/contact')
+									->with('message', \SiteHelpers::alert('success','Thank you for contacting us'));
+		}
+		else{
+			return Redirect::to('/contact')->with('message',\SiteHelpers::alert('error','The following errors occurred')
+			)->withErrors($validator)->withInput();
+		}
+	}
+
+	public function getPrivacy(){
+		return view('frontend.privacy')->render();
+	}
+
+	public function getAbout(){
+		return view('frontend.aboutus')->render();
+	}
+
+	public function getAdvertise(){
+		return view('frontend.advertise-with-us')->render();
+	}
+
 }

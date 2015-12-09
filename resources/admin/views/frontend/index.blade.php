@@ -1,6 +1,28 @@
 <?php 
   $categories     = SiteHelpers::mainCategory('category') ;
-  $subCategories  = SiteHelpers::mainCategory('subcategory') ;
+  $currentRoute   = Route::current();
+  $parameters     = $currentRoute->parameters();
+  if($parameters)
+  {
+    $cat  = SiteHelpers::CF_decode_json($parameters['one']);
+    if(is_array($cat))
+    {
+      $categoryId = $cat[1];
+    }
+    else
+    {
+      $categoryId = $cat;
+    }
+  }
+  else
+  {
+    $categoryId = 'all';
+  }
+  /*if($params)
+  {
+
+  }*/
+  $subCategories  = SiteHelpers::mainCategory($categoryId) ;
 
 ?>
 <!DOCTYPE HTML>
@@ -39,7 +61,7 @@
 
 <!--main-links start-->
 <div class="main-links">
-  <a href="#" class="active-links">All</a>
+  <a href="{{URL::to('/')}}" class="active-links">All</a>
   @foreach($categories as $category)
   <a href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($category->pk_category_id))}}">{{$category->category_name}}</a>
   @endforeach
@@ -69,15 +91,40 @@
 <!--head-section-main --></div>
 <div class="middle-section">
 <div class="sub-links">
-<?php $params = array();?>
+<?php $params = array();$i=1?>
 @foreach($subCategories as $subcat)
+@if($i<=10)
 <?php 
+
   $params[0] = $subcat->pk_sub_category_id;
   $params[1] = $subcat->fk_category_id;
+  $i++;
 ?>
   <a href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($params))}}">{{$subcat->sub_category_name}}</a>
+@endif
+@endforeach
+@if(count($subCategories)>10)
+<a href="javascript:void(0)" class="blue-link"><strong>more</strong></a>
+@endif
+</div>
+<!-- third-level-links start -->
+<div class="third-level-links" style="display:none;">
+  <div class="close-ic"></div>
+  <?php $j=1;?>
+  @foreach($subCategories as $subcat)
+ @if($j>10)
+<?php 
+
+  $params[0] = $subcat->fk_category_id;
+  $params[1] = $subcat->pk_sub_category_id;
+  
+?>
+  <a href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($params))}}">{{$subcat->sub_category_name}}</a>
+@endif
+<?php $j++;?>
 @endforeach
 </div>
+<!--third-level-links end-->
 @yield('content')
 @extends('frontend.layouts.footer')
 <!--footer -->
@@ -102,10 +149,10 @@
 <!--login-tab-nav --></div>
 <div class="sign-in" style="display:block;">
 <div class="facebook-login">
-<a href="#"><img src="images/fb-1.jpg" alt=""> SIGN IN WITH FACEBOOK</a>
+<a href="#"><img src="{{URL::asset('images/fb-1.jpg')}}" alt=""> SIGN IN WITH FACEBOOK</a>
 <!--facebook-login --></div>
 <div class="google-login">
-<a href="#"><img src="images/g+.jpg" alt=""> SIGN IN  with Google+</a>
+<a href="#"><img src="{{URL::asset('images/g+.jpg')}}" alt=""> SIGN IN  with Google+</a>
 <!--facebook-login --></div>
 <div class="or"><div>or</div></div>
 <div class="email">
@@ -128,10 +175,10 @@
 
 <div class="sign-up" style="display:none;">
 <div class="facebook-login">
-<a href="#"><img src="images/fb-1.jpg" alt=""> SIGN UP WITH FACEBOOK</a>
+<a href="#"><img src="{{URL::asset('images/fb-1.jpg')}}" alt=""> SIGN UP WITH FACEBOOK</a>
 <!--facebook-login --></div>
 <div class="google-login">
-<a href="#"><img src="images/g+.jpg" alt=""> SIGN UP  with Google+</a>
+<a href="#"><img src="{{URL::asset('images/g+.jpg')}}" alt=""> SIGN UP  with Google+</a>
 <!--facebook-login --></div>
 <div class="or"><div>or</div></div>
 <div class="first-name">
@@ -283,8 +330,8 @@ Year
 </body>
 
 
-<script src='scripts/jquery.magnific-popup.min.js'></script>
-<script src="scripts/index.js"></script>
+<script src="{{URL::asset('scripts/jquery.magnific-popup.min.js')}}"></script>
+<script src="{{URL::asset('scripts/index.js')}}"></script>
 <script>
 $(document).ready(function(){
   $('.devices-menu').click(function(){

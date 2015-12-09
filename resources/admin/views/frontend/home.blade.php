@@ -1,7 +1,41 @@
 
 @extends('frontend.index')
 @section('content')
-
+<?php 
+  $categories     = SiteHelpers::mainCategory('category') ;
+  $currentRoute   = Route::current();
+  $parameters     = $currentRoute->parameters();
+  if($parameters)
+  {
+    $cat  = SiteHelpers::CF_decode_json($parameters['one']);
+    if(is_array($cat))
+    {
+    	$pollNext[0] 	= $cat[0];
+      	$pollNext[1] 	= $cat[1];
+    }
+    else
+    {
+      	$pollNext[0] 	= $cat;
+      	$pollNext[1]  	= '';
+    }
+  }
+  else
+  {
+  	$pollNext[0] 	= '';
+  	$pollNext[1]  	= '';
+  }
+  // echo "<pre>";print_r($polls);die;
+  if(isset($polls))
+  {
+  	$pollNext[2] = $polls->pk_poll_id;
+  }
+  else
+  {
+  	$pollNext[2] = '';
+  }
+  
+  $nextPollArr = SiteHelpers::CF_encode_json($pollNext);
+  ?>
 <div class="main-banner m-none">
 <img src="{{ URL::asset('images/banner-main.jpg') }}" alt="">
 <!--main-banner --></div>
@@ -9,9 +43,10 @@
 
 <div class="left-main">
 <div class="middle-column-sub">
+	@if(isset($polls))
 <div class="middle-section-button">
 <a href="#" class="facebook"><i class="fa fa-facebook"></i> &nbsp;Post to Facebook</a>
-<a href="#" class="next-poll">Next Poll <i class="fa fa-angle-double-right"></i></a>
+<a href="{{URL::to('nextpoll/'.$nextPollArr)}}" class="next-poll">Next Poll <i class="fa fa-angle-double-right"></i></a>
 <!--middle-section-button --></div>
 
 <div class="google-add">
@@ -58,7 +93,7 @@
 @foreach($jsonOptions as $opt)
 <li>
 	<div class="thumb">
-		<img src="{{ URL::asset('/uploads/options/'.$polls->pk_poll_id.'/'.$opt->image) }}" alt="">
+		<img src="{{ URL::asset('/uploads/options/'.$opt->image) }}" alt="">
 	</div>
 	<div class="small-desc">
 		<p class="four-c">{{$opt->title}}</p>
@@ -76,7 +111,7 @@
 @foreach($jsonOptions as $opt)
 <li>
 	<div class="thumb">
-		<img src="{{ URL::asset('/uploads/options/'.$polls->pk_poll_id.'/'.$opt->image) }}" alt="">
+		<img src="{{ URL::asset('/uploads/options/'.$opt->image) }}" alt="">
 	</div>
 	<div class="small-desc">
 		<p class="three-c">{{$opt->title}}</p>
@@ -93,7 +128,7 @@
 <ul>
 @foreach($jsonOptions as $opt)
 <li>
-<div class="thumb"><img src="{{ URL::asset('/uploads/options/'.$polls->pk_poll_id.'/'.$opt->image) }}" alt=""></div>
+<div class="thumb"><img src="{{ URL::asset('/uploads/options/'.$opt->image) }}" alt=""></div>
 <div class="small-desc"><p class="two-c">{{$opt->title}}</p>
 
 <input type="submit" name="button" id="button" value="Vote">
@@ -110,7 +145,7 @@
 @foreach($jsonOptions as $opt)
 	<li>
 		<div class="thumb">
-			<img src="{{ URL::asset('/uploads/options/'.$polls->pk_poll_id.'/'.$opt->image) }}" alt="">
+			<img src="{{ URL::asset('/uploads/options/'.$opt->image) }}" alt="">
 		</div>
 		<div class="small-desc"><p class="single-c">{{$opt->title}}</p>
 			<input type="submit" name="button" id="button" value="Vote">
@@ -142,7 +177,7 @@
 @foreach($jsonOptions as $opt)
 	<div class="item">
 		<div class="thumb">
-			<img alt="" src="{{ URL::asset('/uploads/options/'.$polls->pk_poll_id.'/'.$opt->image) }}">
+			<img alt="" src="{{ URL::asset('/uploads/options/'.$opt->image) }}">
 		</div>
 		<div class="bar-desc">
 			<p class="single-line">{{$opt->title}} </p>
@@ -161,7 +196,7 @@
 <!--google-add --></div>
 
 <div class="bottom-section-button">
-<a href="#" class="next-poll">Next Poll <i class="fa fa-angle-double-right"></i></a>
+<a href="{{URL::to('nextpoll/'.$nextPollArr)}}" class="next-poll">Next Poll <i class="fa fa-angle-double-right"></i></a>
 <div class="clear-fix"></div>
 <a href="#" class="facebook"><i class="fa fa-facebook"></i> &nbsp;Post to Facebook</a>
 
@@ -217,8 +252,10 @@ This Website Is?
 <!--commnets-discussions --></div>
 
 
+@else
+{{"No Polls in this category"}}
+@endif
 <!--middle-column-sub --></div>
-
 <div class="left-column-sub">
 <div class="left-tabs">
 <ul>
@@ -231,7 +268,9 @@ This Website Is?
 <div class="latest" style="display:block;">
 <?php
 $latestNoImage 	= array();
-$latestImage 	= array(); 
+$latestImage 	= array();
+if($latest)
+{ 
 foreach ($latest as $l) {
 	if($l->poll_type == "thumbnail without image")
 	{
@@ -245,24 +284,52 @@ foreach ($latest as $l) {
 if(count($latestImage))
 {
 foreach ($latestImage as $key) {
+	/*params*/
+	$lp[0] = $key->fk_category_id;
+	$lp[1] = $key->fk_sub_category_id;
+	$lp[2] = $key->pk_poll_id;
+	$lpArr = SiteHelpers::CF_encode_json($lp);
 ?>
 <div class="tab-sub-section">
 <div class="soon-image"><img src="{{ URL::asset('uploads/polls/thumb/'.$key->thumbnail) }}" alt=""></div>
-<div class="soon-des"><?php echo $key->title;?>
+<div class="soon-des">
+	<a href = "{{URL::to('poll/'.$lpArr)}}"><?php echo $key->title;?></a>
 </div>
 <!--soon-section --></div>
-<?php }}//withimage?>
+<?php }}
+
+//withimage?>
 
 <?php
 if(count($latestNoImage)) 
 {
 foreach ($latestNoImage as $key1) {
+	/*params*/
+	$lnp[0] = $key1->fk_category_id;
+	$lnp[1] = $key1->fk_sub_category_id;
+	$lnp[2] = $key1->pk_poll_id;
+	$lnpArr = SiteHelpers::CF_encode_json($lnp);
 ?>
 <div class="tab-sub-section">
-<?php echo $key1->title;?>
+<a href = "{{URL::to('poll/'.$lnpArr)}}"><?php echo $key1->title;?></a>
 </div>
-<?php }}?>
-<div class="view-all"><a href="#">VIEW ALL</a></div>
+<?php }}}
+else
+{
+	echo "No Latest Polls";
+}?>
+<?php 
+/*parameters for latest view all*/
+$latestArr 		= array();
+$latestArr[0] 	= $pollNext[0];
+$latestArr[1] 	= $pollNext[1];
+$latestArr[2]	= 'latest';
+$lArr 			= SiteHelpers::CF_encode_json($latestArr);
+if($latest)
+{
+?>
+<div class="view-all"><a href="{{URL::to('/viewall/'.$lArr)}}">VIEW ALL</a></div>
+<?php }?>
 </div>
 <!--latest ends-->
 
@@ -278,8 +345,16 @@ Think This Website Is?
 How Informative Do You Think This Website 
 Is? This Website Is?
 </div>
+<?php 
+/*parameters for voted view all*/
+$votedArr 		= array();
+$votedArr[0] 	= $pollNext[0];
+$votedArr[1] 	= $pollNext[1];
+$votedArr[2]	= 'voted';
+$vArr 			= SiteHelpers::CF_encode_json($votedArr);
+?>
 
-<div class="view-all"><a href="#">VIEW ALL</a></div>
+<div class="view-all"><a href="{{URL::to('/viewall/'.$vArr)}}">VIEW ALL</a></div>
 </div>
 <!-- you voted ends -->
 <!-- closed starts -->
@@ -303,15 +378,21 @@ if(count($closed))
 }
 else
 {
-	echo "No Closed POlls";
+	echo "No Closed Polls";
 }
 if(count($closedImage))
 {
 	foreach ($closedImage as $ckey) {
+	/*params*/
+	$cp[0] = $ckey->fk_category_id;
+	$cp[1] = $ckey->fk_sub_category_id;
+	$cp[2] = $ckey->pk_poll_id;
+	$cArr = SiteHelpers::CF_encode_json($cp);
 ?>
 	<div class="tab-sub-section">
 	<div class="soon-image"><img src="{{ URL::asset('uploads/polls/thumb/'.$ckey->thumbnail) }}" alt=""></div>
-	<div class="soon-des"><?php echo $ckey->title;?>
+	<div class="soon-des">
+		<a href = "{{URL::to('poll/'.$cArr)}}"><?php echo $ckey->title;?></a>
 	</div>
 	</div>
 <?php }}?>
@@ -319,12 +400,29 @@ if(count($closedImage))
 if(count($closedNoImage))
 {
 	foreach ($closedNoImage as $ckey1) {
+	/*params*/
+	$cnp[0] = $ckey1->fk_category_id;
+	$cnp[1] = $ckey1->fk_sub_category_id;
+	$cnp[2] = $ckey1->pk_poll_id;
+	$cnArr = SiteHelpers::CF_encode_json($cnp);
 ?>
 <div class="tab-sub-section">
-<?php echo $ckey1->title;?>
+<a href = "{{URL::to('poll/'.$cnArr)}}"><?php echo $ckey1->title;?></a>
 </div>
 <?php }}?>
-<div class="view-all"><a href="#">VIEW ALL</a></div>
+<?php 
+/*parameters for voted view all*/
+$closedArr 		= array();
+$closedArr[0] 	= $pollNext[0];
+$closedArr[1] 	= $pollNext[1];
+$closedArr[2]	= 'closed';
+$cArr 			= SiteHelpers::CF_encode_json($closedArr);
+if(count($closed))
+{
+?>
+
+<div class="view-all"><a href="{{URL::to('/viewall/'.$cArr)}}">VIEW ALL</a></div>
+<?php }?>
 </div>
 <!-- closed ends -->
 
@@ -333,15 +431,24 @@ if(count($closedNoImage))
 	<h2>FEATURED</h2>
 	@if(count($featured))
 	@foreach($featured as $fkey)
+	<?php 
+	/*params*/
+	$fp[0] = $fkey->fk_category_id;
+	$fp[1] = $fkey->fk_sub_category_id;
+	$fp[2] = $fkey->pk_poll_id;
+	$fpArr = SiteHelpers::CF_encode_json($fp);
+	?>
 	<div class="tab-sub-section">
 		<div class="soon-image">
 			<img src="{{ URL::asset('uploads/polls/thumb/'.$fkey->thumbnail) }}" alt="">
 		</div>
 		<div class="soon-des">
-			{{$fkey->title}}
+			<a href = "{{URL::to('poll/'.$fpArr)}}"  class = "single-poll">{{$fkey->title}}</a>
 		</div>
 	</div>
 	@endforeach
+	@else
+	{{"No Featured Polls"}}
 	@endif
 </div>
 <!-- featured poll ends -->
@@ -356,15 +463,24 @@ if(count($closedNoImage))
 <h2>FEATURED</h2>
 @if(count($featured))
 	@foreach($featured as $fkey)
+	<?php 
+	/*params*/
+	$fp[0] = $fkey->fk_category_id;
+	$fp[1] = $fkey->fk_sub_category_id;
+	$fp[2] = $fkey->pk_poll_id;
+	$fpArr = SiteHelpers::CF_encode_json($fp);
+	?>
 	<div class="tab-sub-section">
 		<div class="soon-image">
 			<img src="{{ URL::asset('uploads/polls/thumb/'.$fkey->thumbnail) }}" alt="">
 		</div>
 		<div class="soon-des">
-			{{$fkey->title}}
+			<a href = "{{URL::to('poll/'.$fpArr)}}"  class = "single-poll">{{$fkey->title}}</a>
 		</div>
 	</div>
 	@endforeach
+	@else
+	{{"No Featured Polls"}}
 @endif
 
 <!--featured-head --></div>

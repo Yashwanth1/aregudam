@@ -22,53 +22,45 @@ class LoginController extends Controller {
 
 	public function getIndex() 
 	{
-		/*all polls*/
-		$getData['polls'] 	= \DB::table('poll')->select('*')
-							->first();
-		/*latest records*/
-		$getData['latest'] 	= \DB::table('poll')->select('*')
-							->orderBy('start_date', 'desc')
-							->take(6)
-							->get();
-		/*closed votes*/
-		$getData['closed']  = \DB::table('poll')->select('*')
-								// ->select('*')
-								->where('end_date', '<', new \DateTime('today'))
-								->get();
-		/*voted polls*/
-		/*after integration of poll answers update this query*/
-		$getData['voted']  	= \DB::table('poll')->select('*')
-								->join('poll_answer','poll.pk_poll_id','=','poll_answer.fk_poll_id')
-								->get();
-		/*featured poll*/
-		$getData['featured'] = \DB::table('poll')->select('*')
-								->where('featured_poll','yes')
-								->get();
+		$getData = \PollHelpers::all();
 		return view('frontend.home',$getData)->render(); 
 	}
-
+	/*when click on menu*/
 	public function getPolls($params)
 	{
 		$param = \SiteHelpers::CF_decode_json($params);
 		if(is_array($param))
 		{
 			//subcategory
-			$getData = \DB::table('poll')->select('*')
-						->where('fk_sub_category_id',$param[0])
-						->where('fk_category_id',$param[1])
-						->get();
-			echo "<pre>";print_r($getData);die;
+			$getData = \PollHelpers::subCategory($param);
 		}
 		else
 		{
 			//category
-			$getData = \DB::table('poll')->select('*')
-						->where('fk_category_id',$param)
-						->get();
-			echo "<pre>";print_r($getData);die;
+			$getData = \PollHelpers::category($param);
 		}
+		return view('frontend.home',$getData)->render();
 	}
-
+	/*for next poll*/
+	public function getNextpoll($params)
+	{
+		$param 	 	= \SiteHelpers::CF_decode_json($params);
+		$getData  	= \PollHelpers::subCategory($param);
+		return view('frontend.home',$getData)->render();
+	}
+	/*for view all*/
+	public function getViewall($params)
+	{
+		$param 		= \SiteHelpers::CF_decode_json($params);
+		$getData 	= \PollHelpers::viewAll($param);
+		return view('frontend.viewall',$getData)->render();
+	}
+	public function getPoll($params)
+	{
+		$param 		= \SiteHelpers::CF_decode_json($params);
+		$getData 	= \PollHelpers::pollSingle($param);
+		return view('frontend.viewall',$getData)->render();
+	}
 	public function getRegister() {
 		
 		if(CNF_REGIST =='false') :    

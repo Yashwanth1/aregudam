@@ -181,7 +181,7 @@ class PollController extends Controller {
 					}
 					/*save the uploaded file*/
 					$baseUrl 		= public_path();
-					$target = $baseUrl."/uploads/options/".$data['pk_poll_id']."/";
+					$target = $baseUrl."/uploads/options/";
 					// pri t_r($target);die;
 					if (!file_exists($target)) {
     							mkdir($target, 0777, true);

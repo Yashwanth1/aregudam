@@ -2,6 +2,7 @@
   $categories     = SiteHelpers::mainCategory('category') ;
   $currentRoute   = Route::current();
   $parameters     = $currentRoute->parameters();
+  $linkSelect     = SiteHelpers::CF_encode_json($parameters);
   if($parameters)
   {
     $cat  = SiteHelpers::CF_decode_json($parameters['one']);
@@ -61,9 +62,17 @@
 
 <!--main-links start-->
 <div class="main-links">
+  @if(empty($cat))
   <a href="{{URL::to('/')}}" class="active-links">All</a>
+  @else
+  <a href="{{URL::to('/')}}">All</a>
+  @endif
   @foreach($categories as $category)
-  <a href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($category->pk_category_id))}}">{{$category->category_name}}</a>
+    @if(!empty($cat))
+      <a class = "<?php if($cat[0] == $category->pk_category_id) echo 'active-links';?>" href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($category->pk_category_id))}}">{{$category->category_name}}</a>
+    @else
+      <a href="{{URL::to('/polls/'.SiteHelpers::CF_encode_json($category->pk_category_id))}}">{{$category->category_name}}</a>
+    @endif
   @endforeach
 </div>
 <!--main-links ends-->
@@ -125,6 +134,7 @@
 @endforeach
 </div>
 <!--third-level-links end-->
+
 @yield('content')
 @extends('frontend.layouts.footer')
 <!--footer -->
@@ -519,4 +529,27 @@ $(document).ready(function(){
           });
       });
     </script>
+    <script type="text/javascript">
+    $(function () {
+
+        function HighlightDiv(divId) {
+            if ($(divId).length > 0) {
+                $(divId).mouseover(function () {
+                    $(this).find('.bar-desc').css({ 'background-color': '#ccc', 'color':'#000' });
+                    $(this).find('.vote-but input[type=submit]').css({ 'background-color': '#99cc00' });
+
+                    //$(this).parent().find(hoverDiv).addClass('classOfDiv').removeClass('bar-desc');
+                }).mouseleave(function () {
+                    $(this).find('.bar-desc,.vote-but').removeAttr('style');
+                    $(this).find('.vote-but input[type=submit]').removeAttr('style');
+
+                });;
+            }
+            else { return false; }
+        }
+
+        HighlightDiv('.item');
+    })
+</script>
+
 <html>

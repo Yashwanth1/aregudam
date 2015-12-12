@@ -602,7 +602,7 @@ $(document).ready(function(){
           var regexp            = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
           var register_valid    = regexp.test(register_email);
           
-          if(name!='' && register_valid && register_password.length>=6){
+          if(name.length>3 && register_valid && register_password.length>=6){
             
             $.ajax({
                 type:"POST",
@@ -624,7 +624,7 @@ $(document).ready(function(){
           }
           else{
             if(name=='' || name.length<3){
-              $("#register_message").css('color','red').html("Name should be of atleast 6 characters");
+              $("#register_message").css('color','red').html("Name should be of atleast 3 characters");
               return false;
             }
             else if(register_email=='' || !register_valid){
@@ -640,7 +640,7 @@ $(document).ready(function(){
         });
         
         $("#close_button").click(function(){
-          alert("cccc");
+          // alert("cccc");
         });
       });
     </script>

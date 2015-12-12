@@ -78,6 +78,7 @@
 <!--main-links ends-->
 
 <!-- before login start-->
+@if(empty(\Session::get('user_id')))
 <div class="login-box">
 <ul id="inline-popups-new">
 <li class="sign-in-c"><a href="#login-pop" data-effect="mfp-3d-unfold">Login</a></li>
@@ -87,12 +88,16 @@
 </div>
 
 <!-- before login ends -->
+@else
 <!-- after login -->
 <div class="after-login">
 <div class="user-icon"><img src="{{ URL::asset('images/user.jpg') }}" alt=""></div>
-<div class="lable">Suresh</div>
+<!-- <div class="lable">Suresh</div> -->
+<div class="lable">
+{{\Session::get('first_name')}}
 </div>
-
+</div>
+@endif
 
 <!--top-section --></div>
 <!--head-section  --></div>
@@ -134,7 +139,6 @@
 @endforeach
 </div>
 <!--third-level-links end-->
-
 @yield('content')
 @extends('frontend.layouts.footer')
 <!--footer -->
@@ -166,20 +170,34 @@
 <!--facebook-login --></div>
 <div class="or"><div>or</div></div>
 <div class="email">
-<input type="text" name="textfield3" id="textfield3" placeholder="Email">
+<input type="text" name="textfield3" class="email_id" id="textfield3" placeholder="Email" value="<?php if(isset($_COOKIE['remember_me'])) {
+    echo $_COOKIE['remember_me'];
+  }
+  else {
+    echo '';
+  }
+  ?>" />
+<input type="hidden" id="_token" name="_token" value="{{ csrf_token() }}">
 <!--email --></div>
 <div class="password">
-<input type="text" name="textfield3" id="textfield3" placeholder="Password">
+<input type="password" name="textfield3" class="password_id" id="textfield3" placeholder="Password" value="">
 <!--password --></div>
+<div id="message"></div>
 <div class="remember-me">
-<input type="checkbox" name="Remember" id="Remember" class="css-checkbox" /><label for="Remember" class="css-label">Remember Me</label>
+<input type="checkbox" name="remember" id="Remember" value="" class="css-checkbox" <?php if(isset($_COOKIE['remember_me'])) {
+    echo 'checked="checked"';
+  }
+  else {
+    echo '';
+  }
+  ?> /><label for="Remember" class="css-label">Remember Me</label>
 <!--remember-me --></div>
 <div id="inline-popups" class="forgot-pass">
 <a href="#forgot-pop" data-effect="mfp-3d-unfold">Forgot Password</a>
 <!--forgot-pass --></div>
 <div class="sign-in-button">
 
-<input type="submit" name="button2" id="button2" value="sign in">
+<input type="submit" class="sign_in" name="button2" id="button2" value="sign in">
 <!--sign-in-button --></div>
 <!--sign-in --></div>
 
@@ -192,20 +210,21 @@
 <!--facebook-login --></div>
 <div class="or"><div>or</div></div>
 <div class="first-name">
-<input type="text" name="textfield3" id="textfield3" placeholder="First Name">
+<input type="text" class="register_name" name="textfield3" id="textfield3" placeholder="First Name">
 <!--first-name --></div>
 
 <div class="email">
-<input type="text" name="textfield3" id="textfield3" placeholder="Email">
+<input type="text" class="register_email" name="textfield3" id="textfield3" placeholder="Email">
 <!--email --></div>
 <div class="password">
-<input type="text" name="textfield3" id="textfield3" placeholder="Password">
+<input type="password" class="register_password" name="textfield3" id="textfield3" placeholder="Password">
 <!--password --></div>
+<div id="register_message"></div>
 <div class="text-lable">
-Must be at least 8 characters, including 1 number, 1 symbol, and 1 uppercase letter
+<!-- Must be at least 8 characters, including 1 number, 1 symbol, and 1 uppercase letter -->
 <!--text-lable --></div>
 <div class="sign-in-button">
-<input type="submit" name="button2" id="button2" value="sign up">
+<input type="submit" name="button2" class="sign_up" id="button2" value="sign up">
 <!--sign-in-button --></div>
 <div class="text-lable">
 By clicking sign up, I acknowledge that I am at least 18 years of age.
@@ -527,29 +546,102 @@ $(document).ready(function(){
           .theiaStickySidebar({
             additionalMarginTop: 30
           });
+
+        $(".sign_in").click(function(){
+            
+            var email_id = $(".email_id").val();
+            var password = $(".password_id").val();   
+            var remember = $("#Remember").is(':checked'); 
+            var regexp   = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            var valid    = regexp.test(email_id);
+            /*$.ajaxSetup({
+              headers: { 'X-CSRF-Token' : $('meta[name=_token]').attr('content') }
+            });*/
+            if(valid){
+              if(password.length < 6){
+                $("#message").css('color','red').html('Password should be of atleast 6 characters');
+                    return false;
+              }
+              if(remember){
+                remember = 1; 
+              }
+              else{
+                remember = 0;
+              }
+              $.ajax({
+                type:"POST",
+                url:"{{ url('/signin')}}",
+                data:{'email_id':email_id,'password':password,'remember':remember},
+                complete:function(data){
+                  if(data.responseText=='Logged in successfully'){
+                    $("#message").css('color','red').html(data.responseText).fadeOut(2000);
+                      setTimeout(function(){ 
+                      location.reload(); 
+                      }, 3000);
+                  }
+                  else{
+                    $("#message").css('color','red').html(data.responseText);
+                    return false;
+                  }
+                }
+              });
+            }
+            else{
+              $("#message").css('color','red').html("Please enter valid email");
+              return false;
+            }
+        });
+
+        $(".sign_up").click(function(){ 
+          $("#register_message").html('');
+          // var error             = 0;
+          var name              = $.trim($(".register_name").val());
+          var register_email    = $(".register_email").val();
+          var register_password = $.trim($(".register_password").val());
+          
+          var regexp            = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+          var register_valid    = regexp.test(register_email);
+          
+          if(name!='' && register_valid && register_password.length>=6){
+            
+            $.ajax({
+                type:"POST",
+                url:"{{ url('/create')}}",
+                data:{'first_name':name,'email_id':register_email,'password':register_password},
+                complete:function(data){
+                  if(data.responseText=='You are registered successfully'){
+                      $("#register_message").css('color','red').html(data.responseText).fadeOut(2000);
+                      setTimeout(function(){ 
+                      location.reload(); 
+                      }, 3000);
+                  }
+                  else{
+                    $("#register_message").css('color','red').html(data.responseText);
+                    return false;
+                  }
+                }
+              }); 
+          }
+          else{
+            if(name=='' || name.length<3){
+              $("#register_message").css('color','red').html("Name should be of atleast 6 characters");
+              return false;
+            }
+            else if(register_email=='' || !register_valid){
+              $("#register_message").css('color','red').html("Please enter valid email");
+              return false;
+            }
+            else{
+              $("#register_message").css('color','red').html("Password should be of atleast 6 characters");
+              return false;
+            }
+          }
+
+        });
+        
+        $("#close_button").click(function(){
+          alert("cccc");
+        });
       });
     </script>
-    <script type="text/javascript">
-    $(function () {
-
-        function HighlightDiv(divId) {
-            if ($(divId).length > 0) {
-                $(divId).mouseover(function () {
-                    $(this).find('.bar-desc').css({ 'background-color': '#ccc', 'color':'#000' });
-                    $(this).find('.vote-but input[type=submit]').css({ 'background-color': '#99cc00' });
-
-                    //$(this).parent().find(hoverDiv).addClass('classOfDiv').removeClass('bar-desc');
-                }).mouseleave(function () {
-                    $(this).find('.bar-desc,.vote-but').removeAttr('style');
-                    $(this).find('.vote-but input[type=submit]').removeAttr('style');
-
-                });;
-            }
-            else { return false; }
-        }
-
-        HighlightDiv('.item');
-    })
-</script>
-
 <html>

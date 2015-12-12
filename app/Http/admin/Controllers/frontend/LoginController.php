@@ -83,46 +83,61 @@ class LoginController extends Controller {
 	}
 
 	public function postCreate( Request $request) {
-	// echo $request->input('gender');die;
+		
+		$email_id 			= $request->input('email_id');
+		$row 				= endusers::where('email_id','=',$email_id)->get(array('email_id'));
+		$row['email_id'] 	= array_pluck($row->toArray(),'email_id');
+		
+		if(!empty($row['email_id'])){
+			return 'Email id already exists.';
+		}
+
 		$rules = array(
 			'first_name'=>'required|alpha_num|min:2',
 			'email_id'=>'required|email|unique:users',
-			'password'=>'required|alpha_num|between:6,12|confirmed',
-			'password_confirmation'=>'required|alpha_num|between:6,12',
+			'password'=>'required|alpha_num|between:6,12',
+			/*'password_confirmation'=>'required|alpha_num|between:6,12',
 			'state'=>'required',
-			'gender'=>'required'
+			'gender'=>'required'*/
 			);	
 		if(CNF_RECAPTCHA =='true') $rules['recaptcha_response_field'] = 'required|recaptcha';
 				
 		$validator = Validator::make($request->all(), $rules);
 
 		if ($validator->passes()) {
-			$code = rand(10000,10000000);
-			
-			$authen = new endusers;
-			$authen->first_name = $request->input('first_name');
-			$authen->email_id = trim($request->input('email_id'));
+			$code 		= rand(10000,10000000);
+
+			$first_name 		= $request->input('first_name');
+			$password 			= $request->input('password');
+			$authen 			= new endusers;
+			$authen->first_name = $first_name;
+			$authen->email_id 	= trim($email_id);
 			/*$authen->activation = $code;
 			$authen->group_id = 3;*/
-			$authen->password = \Hash::make($request->input('password'));
-			$authen->fk_state_id= $request->input('state');
-			$authen->gender= $request->input('gender');
+			$authen->password 		= \Hash::make($password);
+			$authen->fk_state_id 	= 2;
+			$authen->gender 		= '';
 			if(CNF_ACTIVATION == 'auto') { $authen->status = 'active'; } else { $authen->status = 'inactive'; }
 			$authen->save();
+
+			\Session::put('user_id', $authen->pk_user_id);
+			\Session::put('email_id', $authen->email_id);
+			\Session::put('first_name', $authen->first_name);	
+
 			/*date_default_timezone_set("Asia/Kolkata");
 			$date = date('Y-m-d H:i:s');*/
 			$data = array(
-				'first_name'	=> 	$request->input('first_name') ,
-				'password'		=> 	$request->input('password') ,
-				'email_id'		=> 	$request->input('email_id') ,
-				'fk_state_id'	=>	$request->input('state'),
-				'gender'		=>	$request->input('gender'),
+				'first_name'	=> 	$first_name ,
+				'password'		=> 	$password ,
+				'email_id'		=> 	$email_id ,
+				// 'fk_state_id'	=>	$request->input('state'),
+				// 'gender'		=>	$request->input('gender'),
 				// 'created_at'	=>	$date,
 				// 'updated_at'	=>	$date,
 				'status'		=>	'inactive'
 				
 			);
-			if(CNF_ACTIVATION == 'confirmation')
+			/*if(CNF_ACTIVATION == 'confirmation')
 			{ 
 			
 				$to = $request->input('email');
@@ -140,13 +155,16 @@ class LoginController extends Controller {
 			} else {
    			 	$message = "Thanks for registering! . Your account is active now ";         
 			
-			}	
+			}	*/
 
-
-			return Redirect::to('admin/user/login')->with('message',\SiteHelpers::alert('success',$message));
+			return 'You are registered successfully';
+			// return Redirect::to('admin/user/login')->with('message',\SiteHelpers::alert('success',$message));
 		} else {
-			return Redirect::to('register')->with('message',\SiteHelpers::alert('error','The following errors occurred')
-			)->withErrors($validator)->withInput();
+			// $error = $validator->messages();
+			return "Please fill the fields correctly";
+			
+			// return Redirect::to('register')->with('message',\SiteHelpers::alert('error','The following errors occurred')
+			// )->withErrors($validator)->withInput();
 		}
 	}
 	
@@ -184,6 +202,7 @@ class LoginController extends Controller {
 	}
 
 	public function postSignin( Request $request) {
+		// print_r(Input::all());die;
 		$rules = array(
 			'email_id'=>'required|email',
 			'password'=>'required',
@@ -208,8 +227,7 @@ class LoginController extends Controller {
 					{
 						// inactive 
 						// \Auth::logout();
-						return Redirect::to('/login')->with('message', \SiteHelpers::alert('error','Your Account is not active'));
-	
+						return 'Your Account is not active';	
 					} /*else if($row->active=='2')
 					{
 						// BLocked users
@@ -226,6 +244,10 @@ class LoginController extends Controller {
 						// \Session::put('ll', $row->last_login);
 						\Session::put('first_name', $row['first_name'][0]);	
 						
+						if($request->input('remember')){
+							$year = time() + 31536000;
+							setcookie('remember_me', $email_id, $year);
+						}
 						/*if(!is_null($request->input('language')))
 						{
 							\Session::put('lang', $request->input('language'));	
@@ -236,16 +258,20 @@ class LoginController extends Controller {
 							if(CNF_FRONT =='false') :
 							return Redirect::to('/login');						
 						else :
-							return Redirect::to('/login')
-									->with('message', \SiteHelpers::alert('success','Logged in successfully'));
+							// return Redirect::to('/login')
+							// 		->with('message', \SiteHelpers::alert('success','Logged in successfully'));
+									return 'Logged in successfully';
 						endif;							
 											
 					}			
 				
 			} else {
-				return Redirect::to('/login')
+				// return \Response::json(['data' => array('message' => 'thanks for registering!')]);
+				// return json_encode($result);
+				return "Your username or password combination was incorrect";
+				/*return Redirect::to('/login')
 					->with('message', \SiteHelpers::alert('error','Your username/password combination was incorrect'))
-					->withInput();
+					->withInput();*/
 			}
 		} else {
 		
